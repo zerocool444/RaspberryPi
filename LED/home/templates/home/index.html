@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load staticfiles %}
+    <meta charset="utf-8" />
+    <title>Raspberry Pi Gpio</title>
+    <style type="text/css">
+        .container {
+            overflow: auto;
+        }
+
+        .led {
+            float: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    {% for led in leds %}
+        <div class="led" data-number="{{led.number}}" data-state="{{led.state|lower}}">
+            {% if led.state %}
+            <a href="#"><img id="img{{led.number}}" src="{% static 'home/img/green.jpg' %}"></a>
+            {% else %}
+            <a href="#"><img id="img{{led.number}}" src="{% static 'home/img/red.jpg' %}"></a>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <script src="{% static 'home/js/jquery.min.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // using jQuery
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie != '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = jQuery.trim(cookies[i]);
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            var csrftoken = getCookie('csrftoken');
+
+            function csrfSafeMethod(method) {
+                // these HTTP methods do not require CSRF protection
+                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+            }
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                }
+            });
+
+            $(".led").click(function() {
+                thisAnchor = $(this);
+                $.ajax({
+                    url: "{% url 'indexajax' %}",
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify({'number': $(this).data("number"),
+                                          'state': $(this).data("state")}),
+                    success: function(data) {
+                        if(data.status) {
+                            reverseState = !thisAnchor.data("state");
+                            thisAnchor.data("state", reverseState);
+                            if(reverseState)
+                            {
+                                $("#img" + thisAnchor.data("number")).prop("src","{% static 'home/img/green.jpg' %}");
+                            }
+                            else {
+                                $("#img" + thisAnchor.data("number")).prop("src","{% static 'home/img/red.jpg' %}");
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
